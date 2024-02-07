@@ -3,6 +3,7 @@
   import { invoke } from "@tauri-apps/api/tauri";
   let showInput = false;
   let pAtH = "";
+  let init: any;
 
   function handleButtonClick() {
     showInput = true;
@@ -12,17 +13,24 @@
     pAtH = event.target.value;
   }
 
-  function handleInputBlur() {
+  async function handleInputBlur() {
     console.log(pAtH);
-    invoke("directory", { path: pAtH });
+    init = await invoke("directory", { path: pAtH });
+    if (init) {
+      console.log(init);
+    }
     showInput = false;
   }
+
+  $: buttonColor = init ? "green" : "red";
 </script>
 
 <main>
   <section class="">
-    <button class="absolute top-4 right-4" on:click={handleButtonClick}
-      >A</button
+    <button
+      class="absolute top-4 right-4"
+      style="color: {buttonColor}"
+      on:click={handleButtonClick}>A</button
     >
     {#if showInput}
       <input

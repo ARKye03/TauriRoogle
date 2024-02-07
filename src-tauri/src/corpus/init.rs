@@ -11,8 +11,8 @@ pub struct Database {
 }
 
 impl Database {
-    pub fn new() -> Self {
-        let corpus = init_corpus();
+    pub fn new(init_path: &str) -> Self {
+        let corpus = init_corpus(&init_path);
         let idf = calculate_idf(&corpus);
         Self { corpus, idf }
     }
@@ -22,8 +22,8 @@ impl Database {
     }
 }
 
-fn init_corpus() -> HashMap<String, HashMap<String, u32>> {
-    let path: &str = "/home/archkye/content/";
+fn init_corpus(init_path: &str) -> HashMap<String, HashMap<String, u32>> {
+    let path: &str = init_path;
     let mut corpus: HashMap<String, HashMap<String, u32>> = HashMap::new();
 
     for entry in WalkDir::new(path) {

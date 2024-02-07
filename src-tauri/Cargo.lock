@@ -2805,8 +2805,8 @@ dependencies = [
 name = "tauri_search"
 version = "0.0.1"
 dependencies = [
- "lazy_static",
  "memmap",
+ "once_cell",
  "serde",
  "serde_json",
  "tauri",

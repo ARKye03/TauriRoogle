@@ -1,25 +1,23 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-#[macro_use]
-extern crate lazy_static;
-
 use corpus::init::Database;
+use once_cell::sync::OnceCell;
 use serde_json::json;
 use std::sync::Mutex;
 
-// This is your global database
-lazy_static! {
-    static ref DATABASE: Mutex<Database> = Mutex::new(Database::new());
-}
+static DATABASE: OnceCell<Mutex<Database>> = OnceCell::new();
+
 #[tauri::command]
-async fn directory(path: String) {
+async fn directory(path: String) -> bool {
     println!("The path is : {}", path);
     if std::path::Path::new(&path).is_dir() {
         println!("The path is a directory");
-        drop(DATABASE.lock().unwrap());
+        let db = Database::new(&path);
+        DATABASE.set(Mutex::new(db)).is_ok()
     } else {
         println!("The path is not a directory");
+        false
     }
 }
 
@@ -32,7 +30,11 @@ async fn search_query(query: String) -> Result<Vec<serde_json::Value>, String> {
     let query: Vec<String> = value.split_whitespace().map(|s| s.to_string()).collect();
 
     // Get a lock on the database
-    let db = DATABASE.lock().unwrap();
+    let db = DATABASE
+        .get()
+        .ok_or("Database not initialized")?
+        .lock()
+        .unwrap();
 
     // Perform the search
     let scores = db.search(&query);
