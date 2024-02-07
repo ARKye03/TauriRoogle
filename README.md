@@ -1,6 +1,6 @@
 # TauriRoogle
 
-Simple cross-platform desktop app build with Tauri for learning purpose.
+Simple cross-platform desktop app built with Tauri for learning purpose.
 
 Download your platform release from the "trunk" branch, execute, set the directory with the "A" button at the the top right, once it gets green tou are ready to search within a directory.
 
