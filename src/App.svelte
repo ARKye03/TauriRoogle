@@ -1,46 +1,17 @@
 <script lang="ts">
   import SearchResults from "./lib/SearchCore.svelte";
-  import { invoke } from "@tauri-apps/api/tauri";
-  let showInput = false;
-  let pAtH = "";
-  let init: any;
+  import SideBar from "./components/SideBar.svelte";
 
-  function handleButtonClick() {
-    showInput = true;
-  }
-
-  function handleInputChange(event: any) {
-    pAtH = event.target.value;
-  }
-
-  async function handleInputBlur() {
-    console.log(pAtH);
-    init = await invoke("directory", { path: pAtH });
-    if (init) {
-      console.log(init);
-    }
-    showInput = false;
-  }
-
-  $: buttonColor = init ? "green" : "red";
+  
 </script>
 
 <main>
+  <div
+    class="absolute inset-0 -z-10 h-full w-full items-center px-5 py-24 [background:radial-gradient(125%_125%_at_50%_10%,#000_40%,#63e_100%)]"
+  ></div>
   <section class="">
-    <button
-      class="absolute top-4 right-4"
-      style="color: {buttonColor}"
-      on:click={handleButtonClick}>A</button
-    >
-    {#if showInput}
-      <input
-        class="absolute top-4 right-4 text-red-600"
-        type="text"
-        bind:value={pAtH}
-        on:input={handleInputChange}
-        on:blur={handleInputBlur}
-      />
-    {/if}
+    <SideBar />
+    
     <div class="flex flex-col justify-between items-center">
       <h1
         class="my-16 text-3xl text-white hover:text-blue-500 transition-colors duration-200 cursor-default"

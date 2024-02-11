@@ -67,6 +67,7 @@ async fn search_query(query: String) -> Result<serde_json::Value, String> {
         .collect();
 
     let response = json!({
+        "time_taken": duration.as_millis().to_string(),
         "results": results_json,
         "suggestions": suggestions
     });

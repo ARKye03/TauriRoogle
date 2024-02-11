@@ -4,7 +4,4 @@
 
 :root {
   @apply text-white w-full h-full;
-  background-image: conic-gradient(from 0deg, #2d2c54, #474787, #2d2c54);
-  background-size: 100% 100%;
-  background-repeat: no-repeat;
 }

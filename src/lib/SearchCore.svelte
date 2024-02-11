@@ -4,13 +4,17 @@
   let Query: string = "";
   let results: any[] = [];
   let suggestions: string[] = [];
+  let timer: string;
 
   async function Search() {
     const response = await invoke<Record<string, any>>("search_query", {
       query: Query,
     });
+    console.log(response);
     results = response.results;
     suggestions = response.suggestions;
+    timer = response.time_taken;
+    console.log(timer);
     results = results.map((result) => {
       result.document = result.document
         .replace("/home/archkye/content/", "")
@@ -52,24 +56,32 @@
       </svg>
     </button>
   </div>
-  {#if suggestions.length > 0}
-    <div class="w-full text-white flex items-center justify-center">
-      Did you mean:
-      {#each suggestions as suggestion, i (i)}
-        <span
-          >{suggestion}{#if i < suggestions.length - 1},
-          {/if}</span
-        >
-      {/each}
+  <article class="w-full text-white flex flex-col items-center justify-center">
+    {#if timer}
+      <p class="text-gray-500">Search took {timer}ms</p>
+    {/if}
+    {#if results.length === 0 && suggestions.length === 0}
+      <p class="text-gray-500">No results!</p>
+    {/if}
+    <div>
+      {#if suggestions.length > 0}
+        Did you mean:
+        {#each suggestions as suggestion, i (i)}
+          <span
+            >{suggestion}{#if i < suggestions.length - 1},
+            {/if}</span
+          >
+        {/each}
+      {/if}
     </div>
-  {/if}
-  <div class="w-full max-h-[500px] overflow-auto">
-    {#each results as result (result.document)}
-      <div class="hover:bg-gray-500 cursor-default my-4">
-        <h2 class="text-xl text-white">{result.document}</h2>
-        <p class="text-gray-500">Score: {result.score}</p>
-        <p class="text-gray-500">{result.snippet}</p>
-      </div>
-    {/each}
-  </div>
+  </article>
 </form>
+<div class="w-full max-h-[500px] overflow-auto px-10">
+  {#each results as result (result.document)}
+    <div class="hover:bg-gray-500 cursor-default my-4">
+      <h2 class="text-xl text-white">{result.document}</h2>
+      <p class="text-gray-500">Score: {result.score}</p>
+      <p class="text-gray-500">{result.snippet}</p>
+    </div>
+  {/each}
+</div>
