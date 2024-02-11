@@ -1,8 +1,9 @@
 use memmap::Mmap;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::f64;
 use std::fs::File;
 use std::path::Path;
+use strsim::levenshtein;
 use walkdir::WalkDir;
 
 pub struct Database {
@@ -18,7 +19,44 @@ impl Database {
     }
 
     pub fn search(&self, query: &[String]) -> HashMap<String, f64> {
-        calculate_bm25(query, &self.idf, &self.corpus)
+        let mut new_query = Vec::new();
+
+        for term in query {
+            if self.idf.contains_key(term) {
+                new_query.push(term.clone());
+            } else {
+                let suggestions = Database::suggest_words(term, &self.corpus);
+                println!("Did you mean: {:?}", suggestions);
+                new_query.extend(suggestions);
+            }
+        }
+
+        let scores = calculate_bm25(&new_query, &self.idf, &self.corpus);
+
+        scores
+    }
+    fn suggest_words(word: &str, corpus: &HashMap<String, HashMap<String, u32>>) -> Vec<String> {
+        let mut min_distance = usize::MAX;
+        let mut suggestions = Vec::new();
+
+        let unique_words: HashSet<String> = corpus
+            .values()
+            .flat_map(|doc_map| doc_map.keys().cloned())
+            .collect();
+
+        for corpus_word in unique_words {
+            let distance = levenshtein(word, &corpus_word);
+
+            if distance < min_distance {
+                min_distance = distance;
+                suggestions.clear();
+                suggestions.push(corpus_word);
+            } else if distance == min_distance {
+                suggestions.push(corpus_word);
+            }
+        }
+
+        suggestions
     }
 }
 

@@ -6,8 +6,7 @@
     "distDir": "../dist"
   },
   "package": {
-    "productName": "TauriRoogle",
-    "version": "0.0.1"
+    "productName": "TauriRoogle"
   },
   "tauri": {
     "allowlist": {
