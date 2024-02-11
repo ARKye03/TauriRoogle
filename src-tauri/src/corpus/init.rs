@@ -1,4 +1,5 @@
 use memmap::Mmap;
+use rust_stemmers::{Algorithm, Stemmer};
 use std::collections::{HashMap, HashSet};
 use std::f64;
 use std::fs::File;
@@ -9,43 +10,70 @@ use walkdir::WalkDir;
 pub struct Database {
     corpus: HashMap<String, HashMap<String, u32>>,
     idf: HashMap<String, f64>,
+    stem_cache: HashMap<String, String>,
 }
 
 impl Database {
     pub fn new(init_path: &str) -> Self {
         let corpus = init_corpus(&init_path);
         let idf = calculate_idf(&corpus);
-        Self { corpus, idf }
+        let stem_cache = HashMap::new();
+        Self {
+            corpus,
+            idf,
+            stem_cache,
+        }
     }
 
-    pub fn search(&self, query: &[String]) -> HashMap<String, f64> {
+    pub fn search(
+        &mut self,
+        query: &[String],
+    ) -> (HashMap<String, (f64, Option<String>)>, Vec<String>) {
         let mut new_query = Vec::new();
+        let mut all_suggestions = Vec::new();
 
         for term in query {
-            if self.idf.contains_key(term) {
-                new_query.push(term.clone());
+            let stemmed_term: String = self.stem_word(term);
+            if self.idf.contains_key(&stemmed_term) {
+                new_query.push(stemmed_term);
             } else {
-                let suggestions = Database::suggest_words(term, &self.corpus);
-                println!("Did you mean: {:?}", suggestions);
+                let suggestions = self.suggest_words(&stemmed_term);
+                let suggestions: Vec<String> = suggestions.into_iter().collect();
+                all_suggestions.extend(suggestions.clone());
                 new_query.extend(suggestions);
             }
         }
 
-        let scores = calculate_bm25(&new_query, &self.idf, &self.corpus);
+        let scores = calculate_bm25(&new_query[..], &self.idf, &self.corpus);
 
-        scores
+        // Generate snippets for each document
+        let mut results = HashMap::new();
+        for (doc, score) in scores {
+            let content = std::fs::read_to_string(&doc).unwrap();
+            let snippet = new_query
+                .iter()
+                .find_map(|term| generate_snippet(&content, term, 25));
+            results.insert(doc, (score, snippet));
+        }
+
+        (results, all_suggestions)
     }
-    fn suggest_words(word: &str, corpus: &HashMap<String, HashMap<String, u32>>) -> Vec<String> {
+
+    fn suggest_words(&mut self, word: &str) -> Vec<String> {
+        let stemmed_word = self.stem_word(word);
+
         let mut min_distance = usize::MAX;
         let mut suggestions = Vec::new();
 
-        let unique_words: HashSet<String> = corpus
+        let unique_words: HashSet<String> = self
+            .corpus
             .values()
             .flat_map(|doc_map| doc_map.keys().cloned())
             .collect();
 
         for corpus_word in unique_words {
-            let distance = levenshtein(word, &corpus_word);
+            let stemmed_corpus_word = self.stem_word(&corpus_word);
+            let distance = levenshtein(&stemmed_word, &stemmed_corpus_word);
 
             if distance < min_distance {
                 min_distance = distance;
@@ -57,6 +85,28 @@ impl Database {
         }
 
         suggestions
+    }
+
+    fn stem_word(&mut self, word: &str) -> String {
+        if let Some(stemmed_word) = self.stem_cache.get(word) {
+            stemmed_word.clone()
+        } else {
+            let en_stemmer = Stemmer::create(Algorithm::English);
+            let stemmed_word = en_stemmer.stem(word).to_owned().to_string();
+            self.stem_cache
+                .insert(word.to_string(), stemmed_word.clone());
+            stemmed_word
+        }
+    }
+}
+
+fn generate_snippet(content: &str, term: &str, context: usize) -> Option<String> {
+    if let Some(start) = content.find(term) {
+        let start = start.saturating_sub(context);
+        let end = (start + term.len() + 2 * context).min(content.len());
+        Some(content[start..end].to_string())
+    } else {
+        None
     }
 }
 
@@ -104,8 +154,9 @@ fn is_text_file(path: &Path) -> bool {
 }
 
 fn process_text(text: &str) -> Vec<String> {
+    let en_stemmer = Stemmer::create(Algorithm::English);
     text.split_whitespace()
-        .map(|word| word.to_lowercase())
+        .map(|word| en_stemmer.stem(&word.to_lowercase()).to_string()) // Convert Cow<'_, str> to String
         .collect()
 }
 

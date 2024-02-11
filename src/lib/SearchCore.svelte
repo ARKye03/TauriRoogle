@@ -3,10 +3,14 @@
 
   let Query: string = "";
   let results: any[] = [];
+  let suggestions: string[] = [];
 
   async function Search() {
-    console.log(Query);
-    results = await invoke("search_query", { query: Query });
+    const response = await invoke<Record<string, any>>("search_query", {
+      query: Query,
+    });
+    results = response.results;
+    suggestions = response.suggestions;
     results = results.map((result) => {
       result.document = result.document
         .replace("/home/archkye/content/", "")
@@ -48,11 +52,23 @@
       </svg>
     </button>
   </div>
+  {#if suggestions.length > 0}
+    <div class="w-full text-white flex items-center justify-center">
+      Did you mean:
+      {#each suggestions as suggestion, i (i)}
+        <span
+          >{suggestion}{#if i < suggestions.length - 1},
+          {/if}</span
+        >
+      {/each}
+    </div>
+  {/if}
   <div class="w-full max-h-[500px] overflow-auto">
     {#each results as result (result.document)}
       <div class="hover:bg-gray-500 cursor-default my-4">
         <h2 class="text-xl text-white">{result.document}</h2>
         <p class="text-gray-500">Score: {result.score}</p>
+        <p class="text-gray-500">{result.snippet}</p>
       </div>
     {/each}
   </div>
