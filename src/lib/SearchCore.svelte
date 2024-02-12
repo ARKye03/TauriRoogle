@@ -1,26 +1,36 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/tauri";
+  import ArrowBadge from "../svgs/ArrowBadge.svelte";
 
   let Query: string = "";
   let results: any[] = [];
   let suggestions: string[] = [];
   let timer: string;
+  let searchState: "idle" | "searching" | "results" | "error" | "initializing" =
+    "idle";
 
   async function Search() {
-    const response = await invoke<Record<string, any>>("search_query", {
-      query: Query,
-    });
-    console.log(response);
-    results = response.results;
-    suggestions = response.suggestions;
-    timer = response.time_taken;
-    console.log(timer);
-    results = results.map((result) => {
-      result.document = result.document
-        .replace("/home/archkye/content/", "")
-        .replace(".txt", "");
-      return result;
-    });
+    searchState = "searching";
+    try {
+      const response = await invoke<Record<string, any>>("search_query", {
+        query: Query,
+      });
+      console.log(response);
+      results = response.results;
+      suggestions = response.suggestions;
+      timer = response.time_taken;
+      console.log(timer);
+      results = results.map((result) => {
+        result.document = result.document
+          .replace("/home/archkye/content/", "")
+          .replace(".txt", "");
+        return result;
+      });
+      searchState = "results";
+    } catch (error) {
+      console.log(error);
+      searchState = "error";
+    }
   }
 </script>
 
@@ -40,22 +50,18 @@
       type="submit"
       class="absolute h-full right-0 top-1/2 transform -translate-y-1/2 bg-gray-800 hover:bg-gradient-to-r from-blue-500 to-purple-500 rounded-r-lg px-2"
     >
-      <svg
-        class="hover:stroke-2 transition-all duration-200"
-        width="50"
-        height="50"
-        viewBox="0 0 24 24"
-        stroke-width="1"
-        stroke="currentColor"
-        fill="none"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      >
-        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-        <path d="M13 7h-6l4 5l-4 5h6l4 -5z" />
-      </svg>
+      <ArrowBadge />
     </button>
   </div>
+</form>
+{#if searchState === "searching"}
+  <div class="typewriter mt-10">
+    <div class="slide"><i></i></div>
+    <div class="paper"></div>
+    <div class="keyboard"></div>
+  </div>
+{/if}
+{#if searchState === "results"}
   <article class="w-full text-white flex flex-col items-center justify-center">
     {#if timer}
       <p class="text-gray-500">Search took {timer}ms</p>
@@ -75,13 +81,16 @@
       {/if}
     </div>
   </article>
-</form>
-<div class="w-full max-h-[500px] overflow-auto px-10">
-  {#each results as result (result.document)}
-    <div class="hover:bg-gray-500 cursor-default my-4">
-      <h2 class="text-xl text-white">{result.document}</h2>
-      <p class="text-gray-500">Score: {result.score}</p>
-      <p class="text-gray-500">{result.snippet}</p>
-    </div>
-  {/each}
-</div>
+  <div class="w-full max-w-3xl max-h-[500px] overflow-auto px-10">
+    {#each results as result (result.document)}
+      <div class="hover:bg-gray-500 cursor-default my-4">
+        <h2 class="text-xl text-white">{result.document}</h2>
+        <p class="text-gray-500">Score: {result.score}</p>
+        <p class="text-gray-500">{result.snippet}</p>
+      </div>
+    {/each}
+  </div>
+{/if}
+{#if searchState === "error"}
+  <h1>Something went terrible wrong :(</h1>
+{/if}
