@@ -8,4 +8,4 @@ It's easy, put "readable" (for now) files.{txt,rs,cs,js,html,css,json,xml,md,...
 
 And search for a word or phrase!
 
-[Experimental] 0.0.3 version
+[Experimental] 0.0.4 version
